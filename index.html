@@ -69,9 +69,15 @@ async function startScan() {
     const result = document.getElementById("result");
     const btn = document.getElementById("scanBtn");
 
-    if (scanner) {
-        result.innerHTML = "Scanner is already running...";
-        return;
+    // 🔥 SAFE RESET IF PREVIOUS SCANNER EXISTS
+    if (scanner !== null) {
+        try {
+            await scanner.stop();
+            await scanner.clear();
+        } catch (e) {
+            console.log("Cleanup error ignored:", e);
+        }
+        scanner = null;
     }
 
     btn.disabled = true;
@@ -111,56 +117,55 @@ async function startScan() {
 
                 try {
 
-                    await scanner.stop();
-                    await scanner.clear();
+                    // stop scanner safely
+                    try {
+                        await scanner.stop();
+                        await scanner.clear();
+                    } catch (e) {
+                        console.log(e);
+                    }
+
                     scanner = null;
 
                     const res = await fetch(
                         API_URL + "?barcode=" + encodeURIComponent(decodedText)
                     );
 
-                    if (!res.ok) {
-                        throw new Error("Server Error");
-                    }
-
                     const data = await res.json();
 
-if (data.status === "DUPLICATE") {
+                    if (data.status === "DUPLICATE") {
 
-   result.innerHTML =
-        "<span style='color:red;font-size:24px;font-weight:bold;'>⚠ ALREADY SCANNED</span><br><br>" +
-        "<b>Barcode:</b> " + decodedText;
+                        result.innerHTML =
+                            "<span style='color:red;font-size:24px;font-weight:bold;'>⚠ ALREADY SCANNED</span><br><br>" +
+                            "<b>Barcode:</b> " + decodedText;
 
+                    }
+                    else if (data.status === "FOUND") {
 
-}
-else if (data.status === "FOUND") {
+                        result.innerHTML =
+                            "<span style='color:green;font-size:24px;font-weight:bold;'>✅ SCANNED SUCCESSFULLY</span><br><br>" +
+                            "<b>Barcode:</b> " + decodedText + "<br>" +
+                            "<b>Lens type:</b> " + (data.colJ || "-") + "<br>" +
+                            "<b>Grade:</b> " + (data.colO || "-");
 
-    result.innerHTML =
-        "<span style='color:green;font-size:24px;font-weight:bold;'>✅ SCANNED SUCCESSFULLY</span><br><br>" +
-        "<b>Barcode:</b> " + decodedText + "<br>" +
-        "<b>Lens type:</b> " + (data.colJ || "-") + "<br>" +
-        "<b>Grade:</b> " + (data.colO || "-");
+                    }
+                    else {
 
-}
-else {
+                        result.innerHTML =
+                            "<span style='color:red;font-size:24px;font-weight:bold;'>❌ NOT FOUND</span><br><br>" +
+                            "<b>Barcode:</b> " + decodedText;
 
-    result.innerHTML =
-        "<span style='color:red;font-size:24px;font-weight:bold;'>❌ NOT FOUND</span><br><br>" +
-        "<b>Barcode:</b> " + decodedText;
-
-}
+                    }
 
                 } catch (err) {
 
                     console.error(err);
-                    result.innerHTML =
-                        "ERROR ❌<br>" + err.message;
+                    result.innerHTML = "ERROR ❌<br>" + err.message;
 
                 } finally {
 
                     isScanning = false;
                     btn.disabled = false;
-
                 }
 
             }
