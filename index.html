@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+    padding: 15px;
+    background: #f4f6f8;
+}
+
+h2 {
+    font-size: 22px;
+}
+
+#reader {
+    width: 100%;
+    max-width: 350px;
+    margin: auto;
+}
+
+button {
+    padding: 14px;
+    font-size: 16px;
+    margin-top: 10px;
+    width: 90%;
+    background: #1976d2;
+    color: white;
+    border: none;
+    border-radius: 8px;
+}
+
+button:disabled {
+    background: gray;
+}
+
+#result {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2>ACEBEDO LENS BARCODE SCANNER</h2>
+
+<div id="reader"></div>
+
+<button id="scanBtn" onclick="startScan()">START SCAN</button>
+
+<p id="result">Ready</p>
+
+<script>
+
+let scanner = null;
+let isScanning = false;
+
+const API_URL = "https://script.google.com/macros/s/AKfycbx68m0-CUU3LoGNQL0mvG9zUCR1VGlN5BTXO0KmXWOUJ_ad2l0eTy7VhHcO1cNB5U7lrw/exec;
+
+async function startScan() {
+
+    const result = document.getElementById("result");
+    const btn = document.getElementById("scanBtn");
+
+    if (scanner) {
+        result.innerHTML = "Scanner is already running...";
+        return;
+    }
+
+    btn.disabled = true;
+    result.innerHTML = "Starting camera...";
+
+    try {
+
+        const devices = await Html5Qrcode.getCameras();
+
+        if (!devices.length) {
+            result.innerHTML = "No camera found ❌";
+            btn.disabled = false;
+            return;
+        }
+
+        const cameraId =
+            devices.find(d =>
+                d.label &&
+                d.label.toLowerCase().includes("back")
+            )?.id || devices[0].id;
+
+        scanner = new Html5Qrcode("reader");
+
+        await scanner.start(
+            cameraId,
+            {
+                fps: 10,
+                qrbox: 250
+            },
+
+            async (decodedText) => {
+
+                if (isScanning) return;
+                isScanning = true;
+
+                result.innerHTML = "Processing...";
+
+                try {
+
+                    await scanner.stop();
+                    await scanner.clear();
+                    scanner = null;
+
+                    const res = await fetch(
+                        API_URL + "?barcode=" + encodeURIComponent(decodedText)
+                    );
+
+                    if (!res.ok) {
+                        throw new Error("Server Error");
+                    }
+
+                    const data = await res.json();
+
+if (data.duplicate) {
+
+    result.innerHTML =
+        "<span style='color:red;font-size:24px;font-weight:bold;'>⚠ ALREADY SCANNED</span><br><br>" +
+        "<b>Barcode:</b> " + decodedText + "<br>" +
+        "<b>Lens type:</b> " + (data.colJ || "-") + "<br>" +
+        "<b>Grade:</b> " + (data.colO || "-");
+
+} else if (data.found && data.saved) {
+
+    result.innerHTML =
+        "✅ SCANNED SUCCESSFULLY<br><br>" +
+        "<b>Barcode:</b> " + decodedText + "<br>" +
+        "<b>Lens type:</b> " + (data.colJ || "-") + "<br>" +
+        "<b>Grade:</b> " + (data.colO || "-");
+
+} else if (data.found) {
+
+    result.innerHTML =
+        "✅ FOUND<br><br>" +
+        "<b>Barcode:</b> " + decodedText + "<br>" +
+        "<b>Lens type:</b> " + (data.colJ || "-") + "<br>" +
+        "<b>Grade:</b> " + (data.colO || "-");
+
+} else {
+
+    result.innerHTML =
+        "❌ NOT FOUND<br><br>" +
+        "<b>Barcode:</b> " + decodedText;
+
+}
+
+                } catch (err) {
+
+                    console.error(err);
+                    result.innerHTML =
+                        "ERROR ❌<br>" + err.message;
+
+                } finally {
+
+                    isScanning = false;
+                    btn.disabled = false;
+
+                }
+
+            }
+
+        );
+
+    } catch (err) {
+
+        console.error(err);
+
+        result.innerHTML =
+            "Cannot access camera.<br>Please allow camera permission.";
+
+        scanner = null;
+        btn.disabled = false;
+    }
+
+}
+
+</script>
+
+</body>
+</html>
