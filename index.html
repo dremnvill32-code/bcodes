@@ -53,6 +53,16 @@ button:disabled {
 
 <div id="reader"></div>
 
+<label style="font-weight:bold; font-size:16px;">SI No.</label><br>
+
+<input 
+    type="text" 
+    id="siNo" 
+    placeholder="Enter SI No."
+    style="padding:12px;width:85%;font-size:16px;margin-top:5px;"
+    required
+/>
+
 <button id="scanBtn" onclick="startScan()">START SCAN</button>
 
 <p id="result">Ready</p>
@@ -61,13 +71,22 @@ button:disabled {
 
 let scanner = null;
 let isScanning = false;
+let currentSINo = "";   // ✅ SESSION SI NO
 
-const API_URL = "https://script.google.com/macros/s/AKfycbzZbDL8A9lIJL-zbtnAg4AzTJIFfOCuBKo8u3wuVowogBY8x1Fz1Wksb_g-57xLvVUFdA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbygfXG6ccCTpELdje7SRdfaaX1nuEDePWM2k9pKCLPpbqGohJ67_WE0k6S6FomuM6K4mQ/exec";
 
 async function startScan() {
 
     const result = document.getElementById("result");
     const btn = document.getElementById("scanBtn");
+
+    // ✅ GET SI NO ONCE PER SESSION
+    currentSINo = document.getElementById("siNo").value.trim();
+
+    if (!currentSINo) {
+        result.innerHTML = "⚠ Please enter SI No. before scanning.";
+        return;
+    }
 
     // SAFE RESET
     if (scanner !== null) {
@@ -127,9 +146,11 @@ async function startScan() {
 
                     scanner = null;
 
-                    // FETCH
+                    // FETCH + SI NO INCLUDED
                     const res = await fetch(
-                        API_URL + "?barcode=" + encodeURIComponent(decodedText)
+                        API_URL +
+                        "?barcode=" + encodeURIComponent(decodedText) +
+                        "&siNo=" + encodeURIComponent(currentSINo)
                     );
 
                     const text = await res.text();
@@ -147,6 +168,7 @@ async function startScan() {
 
                         result.innerHTML =
                             "<span style='color:red;font-size:24px;font-weight:bold;'>⚠ ALREADY SCANNED</span><br><br>" +
+                            "<b>SI No:</b> " + (data.siNo ?? "-") + "<br>" +
                             "<b>Barcode:</b> " + decodedText + "<br>" +
                             "<b>Lens type:</b> " + (data.colJ ?? "-") + "<br>" +
                             "<b>Grade:</b> " + (data.colO ?? "-");
@@ -157,6 +179,7 @@ async function startScan() {
 
                         result.innerHTML =
                             "<span style='color:green;font-size:24px;font-weight:bold;'>✅ SCANNED SUCCESSFULLY</span><br><br>" +
+                            "<b>SI No:</b> " + (data.siNo ?? "-") + "<br>" +
                             "<b>Barcode:</b> " + decodedText + "<br>" +
                             "<b>Lens type:</b> " + (data.colJ ?? "-") + "<br>" +
                             "<b>Grade:</b> " + (data.colO ?? "-");
@@ -167,6 +190,7 @@ async function startScan() {
 
                         result.innerHTML =
                             "<span style='color:red;font-size:24px;font-weight:bold;'>❌ NOT FOUND</span><br><br>" +
+                            "<b>SI No:</b> " + (data.siNo ?? "-") + "<br>" +
                             "<b>Barcode:</b> " + decodedText;
 
                     }
