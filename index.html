@@ -125,34 +125,26 @@ async function startScan() {
 
                     const data = await res.json();
 
-if (data.duplicate) {
+if (data.status === "DUPLICATE") {
 
     result.innerHTML =
         "<span style='color:red;font-size:24px;font-weight:bold;'>⚠ ALREADY SCANNED</span><br><br>" +
+        "<b>Barcode:</b> " + decodedText;
+
+}
+else if (data.status === "FOUND") {
+
+    result.innerHTML =
+        "<span style='color:green;font-size:24px;font-weight:bold;'>✅ SCANNED SUCCESSFULLY</span><br><br>" +
         "<b>Barcode:</b> " + decodedText + "<br>" +
         "<b>Lens type:</b> " + (data.colJ || "-") + "<br>" +
         "<b>Grade:</b> " + (data.colO || "-");
 
-} else if (data.found && data.saved) {
+}
+else {
 
     result.innerHTML =
-        "✅ SCANNED SUCCESSFULLY<br><br>" +
-        "<b>Barcode:</b> " + decodedText + "<br>" +
-        "<b>Lens type:</b> " + (data.colJ || "-") + "<br>" +
-        "<b>Grade:</b> " + (data.colO || "-");
-
-} else if (data.found) {
-
-    result.innerHTML =
-        "✅ FOUND<br><br>" +
-        "<b>Barcode:</b> " + decodedText + "<br>" +
-        "<b>Lens type:</b> " + (data.colJ || "-") + "<br>" +
-        "<b>Grade:</b> " + (data.colO || "-");
-
-} else {
-
-    result.innerHTML =
-        "❌ NOT FOUND<br><br>" +
+        "<span style='color:red;font-size:24px;font-weight:bold;'>❌ NOT FOUND</span><br><br>" +
         "<b>Barcode:</b> " + decodedText;
 
 }
