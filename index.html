@@ -130,6 +130,8 @@ if (data.status === "DUPLICATE") {
     result.innerHTML =
         "<span style='color:red;font-size:24px;font-weight:bold;'>⚠ ALREADY SCANNED</span><br><br>" +
         "<b>Barcode:</b> " + decodedText;
+     "<b>Lens type:</b> " + (data.colJ || "-") + "<br>" +
+        "<b>Grade:</b> " + (data.colO || "-");
 
 }
 else if (data.status === "FOUND") {
